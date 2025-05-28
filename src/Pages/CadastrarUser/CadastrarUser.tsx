@@ -1,12 +1,11 @@
-import { useState } from "react";
+import { useState, ChangeEvent, FormEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { FaRegUser } from "react-icons/fa";
 import { AiOutlineMail } from "react-icons/ai";
 import { TbLockPassword } from "react-icons/tb";
 import Logo from "../../assets/Logo2.png";
 import { Link } from "react-router-dom";
-import{
-
+import {
   ContentCadastro,
   DivInput,
   FormCadastro,
@@ -19,18 +18,25 @@ import{
 import axios from "axios";
 import Button from "../../Components/Button/Button";
 
+// Tipagem do form
+interface FormData {
+  username: string;
+  email: string;
+  password: string;
+  confirmPassword: string; // ✅ usado só para validação
+}
 
 const CadastrarUser = () => {
   const navigate = useNavigate();
   const [error, setError] = useState("");
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<FormData>({
     username: "",
     email: "",
     password: "",
-    confirmPassword: "",
+    confirmPassword: "", // ✅ manter no estado
   });
 
-  const handleChange = (e) => {
+  const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
     setFormData((prevData) => ({
       ...prevData,
@@ -38,36 +44,44 @@ const CadastrarUser = () => {
     }));
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    if (!formData.username || !formData.email || !formData.password || formData.password !== formData.confirmPassword) {
+    // ✅ Validação de senha igual
+    if (
+      !formData.username ||
+      !formData.email ||
+      !formData.password ||
+      formData.password !== formData.confirmPassword
+    ) {
       setError("Todos os campos são obrigatórios e as senhas devem ser iguais");
       return;
     }
 
     setError("");
 
-    try {
-      const response = await axios.post("https://my-first-project-repo-production.up.railway.app/createUser", formData, {
-        headers: { "Content-Type": "application/json" },
-      });
+    // ✅ Remove confirmPassword antes de enviar
+    const { confirmPassword, ...dataToSend } = formData;
 
-  
+    try {
+      const response = await axios.post(
+        "https://my-first-project-repo-production.up.railway.app/createUser",
+        dataToSend,
+        {
+          headers: { "Content-Type": "application/json" },
+        }
+      );
 
       if (response.status === 201) {
-        navigate("/login"); // Redireciona após sucesso
+        navigate("/login");
       } else {
         throw new Error(response.data.message || "Erro ao cadastrar usuário");
       }
-    }  catch (err) {
-  console.error("Cadastro falhou:", err);
-  const errorMessage = err.response?.data?.message || "Erro ao cadastrar usuário";
-
-
-
-  setError(errorMessage); // opcional, se quiser mostrar no formulário também
-}
+    } catch (err: any) {
+      console.error("Cadastro falhou:", err);
+      const errorMessage = err.response?.data?.message || "Erro ao cadastrar usuário";
+      setError(errorMessage);
+    }
   };
 
   return (

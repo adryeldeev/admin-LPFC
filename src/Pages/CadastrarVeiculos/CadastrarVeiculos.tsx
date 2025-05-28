@@ -148,34 +148,43 @@ const CadastrarVeiculos: React.FC = () => {
       <TitleCadastrarVeiculos>Cadastre seu Veículo</TitleCadastrarVeiculos>
       <InfoCadastro>
         <FormCadastrarVeiculos onSubmit={formik.handleSubmit}>
-          {[
-            { id: "modelo", icon: <AiOutlineCar />, placeholder: "Modelo" },
-            { id: "cambio", icon: <TbBrandTesla />, placeholder: "Câmbio" },
-            { id: "ano", icon: <TbCalendarTime />, placeholder: "Ano" },
-            { id: "quilometragem", icon: <TbGauge />, placeholder: "Quilometragem" },
-            { id: "combustivel", icon: <TbGasStation />, placeholder: "Combustível" },
-            { id: "preco", icon: <TbCurrencyReal />, placeholder: "Preço" },
-            { id: "descricao", icon: <TbFileDescription />, placeholder: "Descrição" },
-            { id: "portas", icon: <TbDoor />, placeholder: "Portas" },
-            { id: "cor", icon: <TbPalette />, placeholder: "Cor" },
-          ].map(({ id, icon, placeholder }) => (
-            <DivInputsCadastrarVeiculos key={id}>
-              <IconWrapper>{icon}</IconWrapper>
-              <InputCadastrarVeiculos
-                type={id === "ano" || id === "quilometragem" || id === "preco" || id === "portas" ? "number" : "text"}
-                id={id}
-                placeholder={placeholder}
-                value={formik.values[id as keyof typeof formik.values] ?? ""}
-                onChange={formik.handleChange}
-                onBlur={formik.handleBlur}
-              />
-              {formik.touched[id as keyof typeof formik.touched] && formik.errors[id as keyof typeof formik.errors] && (
-                <div style={{ color: "red", fontSize: "12px" }}>
-                  {formik.errors[id as keyof typeof formik.errors]}
-                </div>
-              )}
-            </DivInputsCadastrarVeiculos>
-          ))}
+         {[
+  { id: "modelo", icon: <AiOutlineCar />, placeholder: "Modelo" },
+  { id: "cambio", icon: <TbBrandTesla />, placeholder: "Câmbio" },
+  { id: "ano", icon: <TbCalendarTime />, placeholder: "Ano" },
+  { id: "quilometragem", icon: <TbGauge />, placeholder: "Quilometragem" },
+  { id: "combustivel", icon: <TbGasStation />, placeholder: "Combustível" },
+  { id: "preco", icon: <TbCurrencyReal />, placeholder: "Preço" },
+  { id: "descricao", icon: <TbFileDescription />, placeholder: "Descrição" },
+  { id: "portas", icon: <TbDoor />, placeholder: "Portas" },
+  { id: "cor", icon: <TbPalette />, placeholder: "Cor" },
+].map(({ id, icon, placeholder }) => {
+  const valorCampo = formik.values[id as keyof typeof formik.values];
+
+  return (
+    <DivInputsCadastrarVeiculos key={id}>
+      <IconWrapper>{icon}</IconWrapper>
+      <InputCadastrarVeiculos
+        type={
+          id === "ano" || id === "quilometragem" || id === "preco" || id === "portas"
+            ? "number"
+            : "text"
+        }
+        id={id}
+        placeholder={placeholder}
+        value={typeof valorCampo === "boolean" ? "" : valorCampo ?? ""}
+        onChange={formik.handleChange}
+        onBlur={formik.handleBlur}
+      />
+      {formik.touched[id as keyof typeof formik.touched] &&
+        formik.errors[id as keyof typeof formik.errors] && (
+          <div style={{ color: "red", fontSize: "12px" }}>
+            {formik.errors[id as keyof typeof formik.errors]}
+          </div>
+      )}
+    </DivInputsCadastrarVeiculos>
+  );
+})}
 
           <DivInputsCadastrarVeiculos>
             <IconWrapper><TbTag /></IconWrapper>

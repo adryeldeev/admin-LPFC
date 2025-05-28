@@ -33,8 +33,10 @@ export const ResetPassword = () => {
         }else{
            alert("Erro ao redefinir a senha.");
         }
-      } catch (error) {
-        alert("Erro ao redefinir a senha.");
+      } 
+      catch (error) {
+        console.error("Erro ao redefinir a senha:", error);
+        alert("Erro ao redefinir a senha. Tente novamente mais tarde.");
       }
     };
   

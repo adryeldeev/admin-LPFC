@@ -23,6 +23,7 @@ type AuthContextType = {
   logOut: () => void;
   error: string;
   api: AxiosInstance;
+  loading: boolean; // Estado de carregamento
 };
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);

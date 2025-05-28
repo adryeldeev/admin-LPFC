@@ -136,7 +136,7 @@ const Carros: React.FC = () => {
     marca: marcaSelecionada ? { id: marcaSelecionada.id, nome: marcaSelecionada.nome } : undefined,
     destaque: values.destaque,
     portas: values.portas ? Number(values.portas) : undefined,
-   imagens: values.imagens || [], // Manter as imagens como estão
+   imagens:  [], // Manter as imagens como estão
 
   };
 
