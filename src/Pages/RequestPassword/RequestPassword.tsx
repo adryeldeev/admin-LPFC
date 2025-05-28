@@ -19,7 +19,7 @@ export const RequestPasswordReset = () => {
   const handleRequestReset = async () => {
     try {
       const response = await api.post("/recuperar-senha", email);
-      if (response.status !== 200 || response.status !== 201) {
+      if (response.status !== 200) {
         throw new Error("Erro ao enviar solicitação de redefinição de senha.");
       }
       alert("Verifique seu e-mail para redefinir sua senha.");

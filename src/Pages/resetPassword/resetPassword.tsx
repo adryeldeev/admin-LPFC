@@ -26,7 +26,7 @@ export const ResetPassword = () => {
   
       try {
        const response = await api.post('/resetpassword', { token, newPassword, confirmNewPassword: confirmPassword });
-       if(response.status === 200 || response.status === 201){
+       if(response.status === 200 ){
 
            alert("Senha redefinida com sucesso!");
            navigate("/login");
