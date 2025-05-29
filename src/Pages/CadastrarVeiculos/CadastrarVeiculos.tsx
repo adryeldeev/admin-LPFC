@@ -49,10 +49,15 @@ interface Marca {
   nome: string;
 }
 
+interface ImagemComPrincipal {
+  file: File;
+  principal: boolean;
+}
+
 const CadastrarVeiculos: React.FC = () => {
   const api = useApi();
   const navigate = useNavigate();
-  const [imagens, setImagens] = useState<File[]>([]);
+  const [imagens, setImagens] = useState<ImagemComPrincipal[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [marcas, setMarcas] = useState<Marca[]>([]);
 
@@ -116,8 +121,12 @@ const CadastrarVeiculos: React.FC = () => {
         formData.append("combustivel", values.combustivel);
         formData.append("cambio", values.cambio);
         formData.append("descricao", values.descricao);
-        imagens.forEach((imagem) => {
-          formData.append("imagens", imagem);
+
+        imagens.forEach(({ file, principal }) => {
+          formData.append("imagens", file);
+          if (principal) {
+            formData.append("imagemPrincipal", file.name); // exemplo de campo extra
+          }
         });
 
         const response = await api.post("/carro", formData, {
@@ -128,7 +137,7 @@ const CadastrarVeiculos: React.FC = () => {
 
         if (response.status === 200 || response.status === 201) {
           alert("Veículo cadastrado com sucesso!");
-          navigate("/veiculos");
+          navigate("/");
           resetForm();
           setImagens([]);
         } else {
@@ -148,43 +157,42 @@ const CadastrarVeiculos: React.FC = () => {
       <TitleCadastrarVeiculos>Cadastre seu Veículo</TitleCadastrarVeiculos>
       <InfoCadastro>
         <FormCadastrarVeiculos onSubmit={formik.handleSubmit}>
-         {[
-  { id: "modelo", icon: <AiOutlineCar />, placeholder: "Modelo" },
-  { id: "cambio", icon: <TbBrandTesla />, placeholder: "Câmbio" },
-  { id: "ano", icon: <TbCalendarTime />, placeholder: "Ano" },
-  { id: "quilometragem", icon: <TbGauge />, placeholder: "Quilometragem" },
-  { id: "combustivel", icon: <TbGasStation />, placeholder: "Combustível" },
-  { id: "preco", icon: <TbCurrencyReal />, placeholder: "Preço" },
-  { id: "descricao", icon: <TbFileDescription />, placeholder: "Descrição" },
-  { id: "portas", icon: <TbDoor />, placeholder: "Portas" },
-  { id: "cor", icon: <TbPalette />, placeholder: "Cor" },
-].map(({ id, icon, placeholder }) => {
-  const valorCampo = formik.values[id as keyof typeof formik.values];
-
-  return (
-    <DivInputsCadastrarVeiculos key={id}>
-      <IconWrapper>{icon}</IconWrapper>
-      <InputCadastrarVeiculos
-        type={
-          id === "ano" || id === "quilometragem" || id === "preco" || id === "portas"
-            ? "number"
-            : "text"
-        }
-        id={id}
-        placeholder={placeholder}
-        value={typeof valorCampo === "boolean" ? "" : valorCampo ?? ""}
-        onChange={formik.handleChange}
-        onBlur={formik.handleBlur}
-      />
-      {formik.touched[id as keyof typeof formik.touched] &&
-        formik.errors[id as keyof typeof formik.errors] && (
-          <div style={{ color: "red", fontSize: "12px" }}>
-            {formik.errors[id as keyof typeof formik.errors]}
-          </div>
-      )}
-    </DivInputsCadastrarVeiculos>
-  );
-})}
+          {[
+            { id: "modelo", icon: <AiOutlineCar />, placeholder: "Modelo" },
+            { id: "cambio", icon: <TbBrandTesla />, placeholder: "Câmbio" },
+            { id: "ano", icon: <TbCalendarTime />, placeholder: "Ano" },
+            { id: "quilometragem", icon: <TbGauge />, placeholder: "Quilometragem" },
+            { id: "combustivel", icon: <TbGasStation />, placeholder: "Combustível" },
+            { id: "preco", icon: <TbCurrencyReal />, placeholder: "Preço" },
+            { id: "descricao", icon: <TbFileDescription />, placeholder: "Descrição" },
+            { id: "portas", icon: <TbDoor />, placeholder: "Portas" },
+            { id: "cor", icon: <TbPalette />, placeholder: "Cor" },
+          ].map(({ id, icon, placeholder }) => {
+            const valorCampo = formik.values[id as keyof typeof formik.values];
+            return (
+              <DivInputsCadastrarVeiculos key={id}>
+                <IconWrapper>{icon}</IconWrapper>
+                <InputCadastrarVeiculos
+                  type={
+                    id === "ano" || id === "quilometragem" || id === "preco" || id === "portas"
+                      ? "number"
+                      : "text"
+                  }
+                  id={id}
+                  placeholder={placeholder}
+                  value={typeof valorCampo === "boolean" ? "" : valorCampo ?? ""}
+                  onChange={formik.handleChange}
+                  onBlur={formik.handleBlur}
+                />
+                {formik.touched[id as keyof typeof formik.touched] &&
+                  formik.errors[id as keyof typeof formik.errors] && (
+                    <div style={{ color: "red", fontSize: "12px" }}>
+                      {formik.errors[id as keyof typeof formik.errors]}
+                    </div>
+                  )}
+              </DivInputsCadastrarVeiculos>
+            );
+          })}
 
           <DivInputsCadastrarVeiculos>
             <IconWrapper><TbTag /></IconWrapper>
@@ -217,7 +225,11 @@ const CadastrarVeiculos: React.FC = () => {
               onChange={(e) => {
                 const files = e.target.files;
                 if (files) {
-                  setImagens(Array.from(files));
+                  const filesArray: ImagemComPrincipal[] = Array.from(files).map((file, index) => ({
+                    file,
+                    principal: index === 0, // Primeira imagem como principal
+                  }));
+                  setImagens(filesArray);
                 }
               }}
             />
