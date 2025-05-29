@@ -293,7 +293,7 @@ const Carros: React.FC = () => {
                 {carro.imagens.map((imagem) => (
                   <SwiperSlide key={imagem.id}>
                     <img
-                      src={`${baseUrl}/uploads/${imagem.url}`}
+                      src={`${baseUrl}/uploads/carros/${imagem.url}`}
                       alt={carro.modelo}
                       style={{ width: "100%", height: "200px", objectFit: "cover" }}
                     />
@@ -378,7 +378,7 @@ const Carros: React.FC = () => {
                   name="descricao"
                   value={formik.values.descricao}
                   onChange={formik.handleChange}
-                  
+
                   
                 />
               </label>
