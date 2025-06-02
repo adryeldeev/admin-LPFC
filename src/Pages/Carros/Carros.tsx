@@ -31,6 +31,7 @@ type Imagem = {
   id: number;
   url: string;
   carroId: number;
+  principal?: boolean;
 };
 
 type Marca = {
@@ -72,15 +73,17 @@ type FormValues = {
 const Carros: React.FC = () => {
   const api = useApi();
   const navigate = useNavigate();
+
   const [carros, setCarros] = useState<Carro[]>([]);
   const [paginaAtual, setPaginaAtual] = useState<number>(1);
   const [open, setOpen] = useState(false);
   const [marcas, setMarcas] = useState<Marca[]>([]);
   const [carroSelecionado, setCarroSelecionado] = useState<Carro | null>(null);
-  const itensPorPagina = 3;
-  const baseUrl =
-    "https://my-first-project-repo-production.up.railway.app"; // URL do seu backend
 
+  const itensPorPagina = 3;
+  const baseUrl = "https://my-first-project-repo-production.up.railway.app";
+
+  // Formik setup
   const formik = useFormik<FormValues>({
     initialValues: {
       modelo: "",
@@ -118,16 +121,14 @@ const Carros: React.FC = () => {
 
       const marcaSelecionada = marcas.find((marca) => marca.nome === values.marca);
 
-      // Validação local para limite de 3 carros em destaque
+      // Limite de 3 carros em destaque
       if (values.destaque) {
         const destaqueCount = carros.filter(
           (c) => c.destaque === true && c.id !== carroSelecionado.id
         ).length;
 
         if (destaqueCount >= 3) {
-          alert(
-            "Já existem 3 carros em destaque. Desmarque algum antes de adicionar outro."
-          );
+          alert("Já existem 3 carros em destaque. Desmarque algum antes de adicionar outro.");
           return;
         }
       }
@@ -145,10 +146,7 @@ const Carros: React.FC = () => {
         formData.append("marcaId", String(marcaSelecionada?.id || ""));
         formData.append("destaque", String(values.destaque));
         formData.append("portas", String(values.portas));
-
-        values.imagens.forEach((file) => {
-          formData.append("imagens", file);
-        });
+        values.imagens.forEach((file) => formData.append("imagens", file));
 
         await handleEdit(carroSelecionado.id, formData);
       } catch (error) {
@@ -158,6 +156,7 @@ const Carros: React.FC = () => {
     },
   });
 
+  // Fetch marcas
   useEffect(() => {
     const fetchMarcas = async () => {
       try {
@@ -167,10 +166,10 @@ const Carros: React.FC = () => {
         console.error("Erro ao buscar marcas:", error);
       }
     };
-
     fetchMarcas();
   }, [api]);
 
+  // Fetch carros
   useEffect(() => {
     const fetchCarros = async () => {
       try {
@@ -188,12 +187,13 @@ const Carros: React.FC = () => {
     fetchCarros();
   }, [api]);
 
+  // Delete carro
   const handleDelete = async (id: number) => {
     if (window.confirm("Tem certeza que deseja excluir este carro?")) {
       try {
         const response = await api.delete(`/carro/${id}`);
         if (response.status === 200) {
-          setCarros((prevCarros) => prevCarros.filter((carro) => carro.id !== id));
+          setCarros((prev) => prev.filter((carro) => carro.id !== id));
           alert("Carro excluído com sucesso.");
         } else {
           alert("Erro ao excluir carro.");
@@ -205,41 +205,42 @@ const Carros: React.FC = () => {
     }
   };
 
+  // Abrir modal e preencher formulário
   const handleOpenModal = (carro: Carro) => {
     setCarroSelecionado(carro);
-    formik.setFieldValue("modelo", carro.modelo);
-    formik.setFieldValue("ano", carro.ano);
-    formik.setFieldValue("preco", carro.preco);
-    formik.setFieldValue("descricao", carro.descricao);
-    formik.setFieldValue("quilometragem", carro.quilometragem);
-    formik.setFieldValue("combustivel", carro.combustivel);
-    formik.setFieldValue("cambio", carro.cambio);
-    formik.setFieldValue("cor", carro.cor);
-    formik.setFieldValue("marca", carro.marca.nome);
-    formik.setFieldValue("destaque", carro.destaque);
-    formik.setFieldValue("portas", carro.portas);
-    formik.setFieldValue("imagens", []); // Reset imagens para upload (não carregar arquivos antigos)
+    formik.setValues({
+      modelo: carro.modelo,
+      ano: carro.ano,
+      preco: carro.preco,
+      descricao: carro.descricao,
+      quilometragem: carro.quilometragem,
+      combustivel: carro.combustivel,
+      cambio: carro.cambio,
+      cor: carro.cor,
+      marca: carro.marca.nome,
+      destaque: carro.destaque,
+      portas: carro.portas,
+      imagens: [],
+    });
     setOpen(true);
   };
 
+  // Fechar modal e resetar formulário
   const handleCloseModal = () => {
     setOpen(false);
     setCarroSelecionado(null);
     formik.resetForm();
   };
 
+  // Editar carro
   const handleEdit = async (id: number, formData: FormData) => {
     try {
       const response = await api.put(`/carro/${id}`, formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
+        headers: { "Content-Type": "multipart/form-data" },
       });
+
       if (response.status === 200) {
-        // Atualizar estado com o carro editado
-        setCarros((prevCarros) =>
-          prevCarros.map((c) => (c.id === id ? response.data : c))
-        );
+        setCarros((prev) => prev.map((c) => (c.id === id ? response.data : c)));
         alert("Carro editado com sucesso.");
       } else if (response.status === 400) {
         alert("Carros em destaque no máximo 3");
@@ -254,6 +255,7 @@ const Carros: React.FC = () => {
     }
   };
 
+  // Paginação
   const indiceInicial = (paginaAtual - 1) * itensPorPagina;
   const indiceFinal = indiceInicial + itensPorPagina;
   const carrosPagina = carros.slice(indiceInicial, indiceFinal);
@@ -270,6 +272,7 @@ const Carros: React.FC = () => {
     }
   };
 
+  // Navegar para cadastro de veículo
   const handleNavigate = () => {
     navigate("/cadastrarVeiculo");
   };
@@ -282,46 +285,52 @@ const Carros: React.FC = () => {
       </DivAdd>
 
       <ListaCarrosContainer>
-        {carrosPagina.map((carro) => (
-          <CarroCard key={carro.id}>
-            <CarroSliderWrapper>
-              <Swiper
-                modules={[Navigation, Pagination]}
-                navigation
-                pagination={{ clickable: true }}
-              >
-                {carro.imagens.map((imagem) => (
-                  <SwiperSlide key={imagem.id}>
-                    <img
-                      src={`${baseUrl}/uploads/carros/${imagem.url}`}
-                      alt={carro.modelo}
-                      style={{ width: "100%", height: "200px", objectFit: "cover" }}
-                    />
-                  </SwiperSlide>
-                ))}
-              </Swiper>
-            </CarroSliderWrapper>
+        {carrosPagina.map((carro) => {
+          // Ordenar imagens para mostrar principal primeiro
+          const imagensOrdenadas = [...carro.imagens].sort((a, b) => {
+            if (a.principal === b.principal) return 0;
+            return a.principal ? -1 : 1;
+          });
 
-            <CarroInfo>
-              <h3>{carro.modelo}</h3>
-              <p>Ano: {carro.ano}</p>
-              <p>Preço: R$ {carro.preco.toLocaleString("pt-BR")}</p>
-              <p>Descrição: {carro.descricao}</p>
-              <p>Quilometragem: {carro.quilometragem.toLocaleString("pt-BR")} km</p>
-              <p>Combustível: {carro.combustivel}</p>
-              <p>Câmbio: {carro.cambio}</p>
-              <p>Cor: {carro.cor}</p>
-              <p>Marca: {carro.marca.nome}</p>
-              <p>Portas: {carro.portas}</p>
-              <p>Destaque: {carro.destaque ? "Sim" : "Não"}</p>
-            </CarroInfo>
+          return (
+            <CarroCard key={carro.id}>
+              <CarroSliderWrapper>
+                <Swiper
+                  modules={[Navigation, Pagination]}
+                  navigation
+                  pagination={{ clickable: true }}
+                >
+                  {imagensOrdenadas.map((imagem) => (
+                    <SwiperSlide key={imagem.id}>
+                      <img src={`${baseUrl}/uploads/carros/${imagem.url}`} alt={carro.modelo}
+                      style={{
+       width: "100%", height: "auto", maxHeight: "200px", objectFit: "cover"}} />
+                    </SwiperSlide>
+                  ))}
+                </Swiper>
+              </CarroSliderWrapper>
 
-            <CardActions>
-              <button onClick={() => handleOpenModal(carro)}>Editar</button>
-              <button onClick={() => handleDelete(carro.id)}>Excluir</button>
-            </CardActions>
-          </CarroCard>
-        ))}
+              <CarroInfo>
+                <h3>{carro.modelo}</h3>
+                <p>Marca: {carro.marca.nome}</p>
+                <p>Ano: {carro.ano}</p>
+                <p>Preço: R$ {carro.preco.toFixed(2)}</p>
+                <p>Descrição: {carro.descricao}</p>
+                <p>Quilometragem: {carro.quilometragem} km</p>
+                <p>Combustível: {carro.combustivel}</p>
+                <p>Câmbio: {carro.cambio}</p>
+                <p>Cor: {carro.cor}</p>
+                <p>Portas: {carro.portas}</p>
+                <p>Destaque: {carro.destaque ? "Sim" : "Não"}</p>
+              </CarroInfo>
+
+              <CardActions className="actions">
+                <button onClick={() => handleOpenModal(carro)}>Editar</button>
+                <button onClick={() => handleDelete(carro.id)}>Excluir</button>
+              </CardActions>
+            </CarroCard>
+          );
+        })}
       </ListaCarrosContainer>
 
       <PaginacaoContainer>
@@ -343,7 +352,9 @@ const Carros: React.FC = () => {
         <ModalContainer open={open}>
           <ModalContent>
             <h2>Editar Carro</h2>
-            <form onSubmit={formik.handleSubmit} encType="multipart/form-data">
+            <form onSubmit={formik.handleSubmit} encType="multipart/form-data" className="form-fields">
+              <div className="form-group">
+
               <label>
                 Modelo:
                 <input
@@ -351,8 +362,12 @@ const Carros: React.FC = () => {
                   name="modelo"
                   value={formik.values.modelo}
                   onChange={formik.handleChange}
-                />
+                  />
               </label>
+
+                  </div>
+                  <div className="form-group">
+
               <label>
                 Ano:
                 <input
@@ -361,7 +376,11 @@ const Carros: React.FC = () => {
                   value={formik.values.ano}
                   onChange={formik.handleChange}
                 />
+                {formik.errors.ano && <div>{formik.errors.ano}</div>}
               </label>
+                </div>
+        <div className="form-group">
+
               <label>
                 Preço:
                 <input
@@ -369,19 +388,24 @@ const Carros: React.FC = () => {
                   name="preco"
                   value={formik.values.preco}
                   onChange={formik.handleChange}
-                />
+                  />
+                {formik.errors.preco && <div>{formik.errors.preco}</div>}
               </label>
+                  </div>
+        <div className="form-group">
+
               <label>
                 Descrição:
-                <input
-                  type="text"
+                <textarea
                   name="descricao"
                   value={formik.values.descricao}
                   onChange={formik.handleChange}
-
-                  
-                />
+                  />
               </label>
+                  </div>
+                  <div className="form-group">
+
+
               <label>
                 Quilometragem:
                 <input
@@ -389,8 +413,13 @@ const Carros: React.FC = () => {
                   name="quilometragem"
                   value={formik.values.quilometragem}
                   onChange={formik.handleChange}
-                />
+                  />
+                {formik.errors.quilometragem && <div>{formik.errors.quilometragem}</div>}
               </label>
+                  </div>
+
+        <div className="form-group">
+
               <label>
                 Combustível:
                 <input
@@ -400,6 +429,9 @@ const Carros: React.FC = () => {
                   onChange={formik.handleChange}
                 />
               </label>
+                  </div>
+        <div className="form-group">
+
               <label>
                 Câmbio:
                 <input
@@ -407,8 +439,11 @@ const Carros: React.FC = () => {
                   name="cambio"
                   value={formik.values.cambio}
                   onChange={formik.handleChange}
-                />
+                  />
               </label>
+                  </div>
+        <div className="form-group">
+
               <label>
                 Cor:
                 <input
@@ -416,8 +451,12 @@ const Carros: React.FC = () => {
                   name="cor"
                   value={formik.values.cor}
                   onChange={formik.handleChange}
-                />
+                  />
               </label>
+                  </div>
+                  <div className="form-group">
+
+
               <label>
                 Marca:
                 <select
@@ -425,7 +464,7 @@ const Carros: React.FC = () => {
                   value={formik.values.marca}
                   onChange={formik.handleChange}
                 >
-                  <option value="">Selecione uma marca</option>
+                  <option value="">Selecione a marca</option>
                   {marcas.map((marca) => (
                     <option key={marca.id} value={marca.nome}>
                       {marca.nome}
@@ -433,13 +472,21 @@ const Carros: React.FC = () => {
                   ))}
                 </select>
               </label>
-              <label style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  </div>
+                  <div className="from-group">
+
+
+              <label>
                 Destaque:
                 <Switch
                   onChange={(checked) => formik.setFieldValue("destaque", checked)}
                   checked={formik.values.destaque}
                 />
               </label>
+                  </div>
+                  <div className="form-group">
+
+
               <label>
                 Portas:
                 <input
@@ -447,30 +494,34 @@ const Carros: React.FC = () => {
                   name="portas"
                   value={formik.values.portas}
                   onChange={formik.handleChange}
-                />
+                  />
+                {formik.errors.portas && <div>{formik.errors.portas}</div>}
               </label>
+                  </div>
+                  <div className="form-group">
+
+
               <label>
-                Imagens:
+                Imagens (múltiplas):
                 <input
                   type="file"
                   name="imagens"
-                  multiple
-                  accept="image/*"
-                  onChange={(event) => {
-                    const files = event.currentTarget.files;
+                  onChange={(e) => {
+                    const files = e.currentTarget.files;
                     if (files) {
                       formik.setFieldValue("imagens", Array.from(files));
                     }
                   }}
-                />
+                  multiple
+                  accept="image/*"
+                  />
               </label>
+                  </div>
 
-              <div style={{ marginTop: "20px", display: "flex", gap: "10px" }}>
-                <BotaoSalvar type="submit">Salvar</BotaoSalvar>
-                <BotaoCancelar type="button" onClick={handleCloseModal}>
-                  Cancelar
-                </BotaoCancelar>
-              </div>
+              <BotaoSalvar type="submit">Salvar</BotaoSalvar>
+              <BotaoCancelar type="button" onClick={handleCloseModal}>
+                Cancelar
+              </BotaoCancelar>
             </form>
           </ModalContent>
         </ModalContainer>

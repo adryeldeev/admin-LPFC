@@ -98,3 +98,5 @@ export const ButtonCadastrarVendedor = styled.button`
     font-size: 14px; /* Tamanho da fonte em telas menores */
     }
     `;
+
+

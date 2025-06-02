@@ -25,6 +25,8 @@ import {
   TitleCadastrarVeiculos,
   SelectCadastrarVeiculos,
   InputUpload,
+  PreviewContainer,
+  Thumbnail,
 } from "./CadastrarVeiculoStyyled";
 import Switch from "react-switch";
 import useApi from "../../Api/Api";
@@ -49,15 +51,14 @@ interface Marca {
   nome: string;
 }
 
-interface ImagemComPrincipal {
-  file: File;
-  principal: boolean;
-}
+
 
 const CadastrarVeiculos: React.FC = () => {
   const api = useApi();
   const navigate = useNavigate();
-  const [imagens, setImagens] = useState<ImagemComPrincipal[]>([]);
+  const [imagens, setImagens] = useState<
+  { file: File; url: string; principal: boolean }[]
+>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [marcas, setMarcas] = useState<Marca[]>([]);
 
@@ -102,32 +103,28 @@ const CadastrarVeiculos: React.FC = () => {
       descricao: Yup.string().nullable(),
     }),
     onSubmit: async (values, { resetForm }) => {
-      if (imagens.length === 0) {
-        alert("Pelo menos uma imagem é obrigatória");
+      const imagemPrincipal = imagens.find((img) => img.principal);
+
+      if (!imagemPrincipal) {
+        alert("Você deve selecionar uma imagem principal");
         return;
       }
 
       setIsSubmitting(true);
+
       try {
         const formData = new FormData();
-        formData.append("modelo", values.modelo);
-        formData.append("marca", values.marca);
-        formData.append("ano", values.ano.toString());
-        formData.append("preco", values.preco.toString());
-        formData.append("quilometragem", values.quilometragem.toString());
-        formData.append("portas", values.portas.toString());
-        formData.append("destaque", String(values.destaque));
-        formData.append("cor", values.cor);
-        formData.append("combustivel", values.combustivel);
-        formData.append("cambio", values.cambio);
-        formData.append("descricao", values.descricao);
 
-        imagens.forEach(({ file, principal }) => {
-          formData.append("imagens", file);
-          if (principal) {
-            formData.append("imagemPrincipal", file.name); // exemplo de campo extra
-          }
+        // Append form fields
+        Object.entries(values).forEach(([key, value]) => {
+          formData.append(key, String(value));
         });
+
+        // Append imagens
+        imagens.forEach(({ file, principal }, index) => {
+  formData.append("imagens", file);
+  formData.append(`principal_${index}`, String(principal)); // exemplo: "true" ou "false"
+});
 
         const response = await api.post("/carro", formData, {
           headers: {
@@ -143,7 +140,7 @@ const CadastrarVeiculos: React.FC = () => {
         } else {
           alert("Erro ao cadastrar veículo.");
         }
-      } catch (error: any) {
+      } catch (error) {
         console.error("Erro ao cadastrar veículo:", error);
         alert("Erro ao cadastrar veículo.");
       } finally {
@@ -152,6 +149,14 @@ const CadastrarVeiculos: React.FC = () => {
     },
   });
 
+const handleSetPrincipal = (index: number) => {
+  setImagens((prev) =>
+    prev.map((img, i) => ({
+      ...img,
+      principal: i === index,
+    }))
+  );
+};
   return (
     <ContentCadastrarVeiculos>
       <TitleCadastrarVeiculos>Cadastre seu Veículo</TitleCadastrarVeiculos>
@@ -221,18 +226,34 @@ const CadastrarVeiculos: React.FC = () => {
             <InputUpload
               type="file"
               id="imagens"
+               name="imagens"
               multiple
               onChange={(e) => {
-                const files = e.target.files;
-                if (files) {
-                  const filesArray: ImagemComPrincipal[] = Array.from(files).map((file, index) => ({
-                    file,
-                    principal: index === 0, // Primeira imagem como principal
-                  }));
-                  setImagens(filesArray);
-                }
-              }}
-            />
+    const files = e.target.files;
+    if (files) {
+      const filesArray = Array.from(files).map((file, index) => ({
+        file,
+        url: URL.createObjectURL(file), // **importante**
+        principal: index === 0,
+      }));
+      setImagens(filesArray);
+    }
+  }}
+/>
+    {imagens.length > 0 && (
+              <PreviewContainer>
+                {imagens.map(({ file, principal }, index) => (
+                  <Thumbnail
+                    key={index}
+                    isPrincipal={principal}
+                    onClick={() => handleSetPrincipal(index)}
+                    title="Clique para definir como imagem principal"
+                  >
+                    <img src={URL.createObjectURL(file)} alt={`Imagem ${index + 1}`} />
+                  </Thumbnail>
+                ))}
+              </PreviewContainer>
+            )}
           </DivInputsCadastrarVeiculos>
 
           <DivInputsCadastrarVeiculos>
