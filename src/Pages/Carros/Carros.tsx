@@ -13,6 +13,9 @@ import {
   ModalContent,
   BotaoSalvar,
   BotaoCancelar,
+  PreviewContainer,
+  Thumbnail,
+ 
 } from "./CarrosStyled";
 
 import { FaArrowLeft, FaArrowRight } from "react-icons/fa";
@@ -27,58 +30,66 @@ import { Navigation, Pagination } from "swiper/modules";
 import Switch from "react-switch";
 import useApi from "../../Api/Api";
 
-type Imagem = {
-  id: number;
-  url: string;
-  carroId: number;
-  principal?: boolean;
-};
+  type Imagem = {
+    id: number;
+    url: string;
+    carroId: number;
+    principal?: boolean;
+  };
 
-type Marca = {
-  id: number;
-  nome: string;
-};
+  type Marca = {
+    id: number;
+    nome: string;
+  };
 
-type Carro = {
-  id: number;
-  modelo: string;
-  ano: number;
-  preco: number;
-  imagens: Imagem[];
-  descricao: string;
-  quilometragem: number;
-  combustivel: string;
-  cambio: string;
-  cor: string;
-  marca: Marca;
-  portas: number;
-  destaque: boolean;
-};
+  type Carro = {
+    id: number;
+    modelo: string;
+    ano: number;
+    preco: number;
+    imagens: Imagem[];
+    descricao: string;
+    quilometragem: number;
+    combustivel: string;
+    cambio: string;
+    cor: string;
+    marca: Marca;
+    portas: number;
+    destaque: boolean;
+  };
+  type CustomFile = File & {
+    principal?: boolean;
+  };
+  type FormValues = {
+    modelo: string;
+    ano: number;
+    preco: number;
+    descricao: string;
+    quilometragem: number;
+    combustivel: string;
+    cambio: string;
+    cor: string;
+    marca: string;
+    destaque: boolean;
+    portas: number;
+    imagens: CustomFile[];
+  };
 
-type FormValues = {
-  modelo: string;
-  ano: number;
-  preco: number;
-  descricao: string;
-  quilometragem: number;
-  combustivel: string;
-  cambio: string;
-  cor: string;
-  marca: string;
-  destaque: boolean;
-  portas: number;
-  imagens: File[];
-};
+type ImagemPreview =
+  | { file: File; url: string; principal: boolean }
+  | { url: string; principal: boolean };
 
-const Carros: React.FC = () => {
-  const api = useApi();
-  const navigate = useNavigate();
+  const Carros: React.FC = () => {
+    const api = useApi();
+    const navigate = useNavigate();
 
-  const [carros, setCarros] = useState<Carro[]>([]);
-  const [paginaAtual, setPaginaAtual] = useState<number>(1);
-  const [open, setOpen] = useState(false);
-  const [marcas, setMarcas] = useState<Marca[]>([]);
-  const [carroSelecionado, setCarroSelecionado] = useState<Carro | null>(null);
+    const [carros, setCarros] = useState<Carro[]>([]);
+    const [paginaAtual, setPaginaAtual] = useState<number>(1);
+    const [open, setOpen] = useState(false);
+    const [marcas, setMarcas] = useState<Marca[]>([]);
+    const [carroSelecionado, setCarroSelecionado] = useState<Carro | null>(null);
+    const [imagens, setImagens] = useState<ImagemPreview[]>([]);
+    // Constantes para paginação
 
   const itensPorPagina = 3;
   const baseUrl = "https://my-first-project-repo-production.up.railway.app";
@@ -146,7 +157,11 @@ const Carros: React.FC = () => {
         formData.append("marcaId", String(marcaSelecionada?.id || ""));
         formData.append("destaque", String(values.destaque));
         formData.append("portas", String(values.portas));
-        values.imagens.forEach((file) => formData.append("imagens", file));
+     values.imagens.forEach((file, index) => {
+  formData.append("imagens", file);
+  const isPrincipal = file.principal === true;
+  formData.append(`principal_${index}`, String(isPrincipal)); // ← aqui é o ponto chave
+});
 
         await handleEdit(carroSelecionado.id, formData);
       } catch (error) {
@@ -235,6 +250,10 @@ const Carros: React.FC = () => {
   // Editar carro
   const handleEdit = async (id: number, formData: FormData) => {
     try {
+       console.log("🟡 Dados enviados no FormData:");
+    for (const [key, value] of formData.entries()) {
+      console.log(`${key}:`, value);
+    }
       const response = await api.put(`/carro/${id}`, formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
@@ -275,6 +294,17 @@ const Carros: React.FC = () => {
   // Navegar para cadastro de veículo
   const handleNavigate = () => {
     navigate("/cadastrarVeiculo");
+  };
+  
+
+  // Setar imagem principal
+  const handleSetPrincipal = (index: number) => {
+    setImagens((prev) =>
+      prev.map((img, i) => ({
+        ...img,
+        principal: i === index,
+      }))
+    );
   };
 
   return (
@@ -503,19 +533,55 @@ const Carros: React.FC = () => {
 
               <label>
                 Imagens (múltiplas):
-                <input
-                  type="file"
-                  name="imagens"
-                  onChange={(e) => {
-                    const files = e.currentTarget.files;
-                    if (files) {
-                      formik.setFieldValue("imagens", Array.from(files));
-                    }
-                  }}
-                  multiple
-                  accept="image/*"
-                  />
+             <input
+         type="file"
+              id="imagens"
+               name="imagens"
+              multiple
+             onChange={(e) => {
+  const files = e.target.files;
+  if (files) {
+    const newImagens: ImagemPreview[] = Array.from(files).map((file, index) => ({
+      file,
+      url: URL.createObjectURL(file),
+      principal: index === 0, // A primeira será a principal
+    }));
+
+    setImagens(newImagens);
+    formik.setFieldValue("imagens", newImagens);
+  }
+}}
+/>
               </label>
+        {imagens.length > 0 && (
+  <PreviewContainer>
+{imagens.map((imagem, index) => {
+  const src =
+    "file" in imagem
+      ? URL.createObjectURL(imagem.file)
+      : imagem.url;
+
+  return (
+    <Thumbnail
+      key={index}
+      isPrincipal={imagem.principal}
+      onClick={() => handleSetPrincipal(index)}
+      title="Clique para definir como imagem principal"
+    >
+      <img src={src} alt={`Imagem ${index + 1}`} />
+    </Thumbnail>
+  );
+})}
+    {imagens.length > 0 && (
+      <p>
+        Clique na imagem para definir como principal.
+      </p>
+
+    )}
+    
+    
+  </PreviewContainer>
+)}
                   </div>
 
               <BotaoSalvar type="submit">Salvar</BotaoSalvar>
