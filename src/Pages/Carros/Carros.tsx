@@ -41,7 +41,11 @@ import useApi from "../../Api/Api";
     id: number;
     nome: string;
   };
-
+type ImagemForm = {
+  file: File;
+  url: string;
+  principal: boolean;
+};
   type Carro = {
     id: number;
     modelo: string;
@@ -57,9 +61,7 @@ import useApi from "../../Api/Api";
     portas: number;
     destaque: boolean;
   };
-  type CustomFile = File & {
-    principal?: boolean;
-  };
+
   type FormValues = {
     modelo: string;
     ano: number;
@@ -72,7 +74,7 @@ import useApi from "../../Api/Api";
     marca: string;
     destaque: boolean;
     portas: number;
-    imagens: CustomFile[];
+    imagens: ImagemForm[];
   };
 
 type ImagemPreview =
@@ -130,7 +132,7 @@ type ImagemPreview =
         return;
       }
 
-      const marcaSelecionada = marcas.find((marca) => marca.nome === values.marca);
+      
 
       // Limite de 3 carros em destaque
       if (values.destaque) {
@@ -154,13 +156,14 @@ type ImagemPreview =
         formData.append("combustivel", values.combustivel);
         formData.append("cambio", values.cambio);
         formData.append("cor", values.cor);
-        formData.append("marcaId", String(marcaSelecionada?.id || ""));
+       formData.append("marca", String(values.marca));
         formData.append("destaque", String(values.destaque));
         formData.append("portas", String(values.portas));
-     values.imagens.forEach((file, index) => {
-  formData.append("imagens", file);
-  const isPrincipal = file.principal === true;
-  formData.append(`principal_${index}`, String(isPrincipal)); // ← aqui é o ponto chave
+   values.imagens.forEach((img, index) => {
+  if (img.file) {
+    formData.append("imagens", img.file); // ✅ agora sim é um File
+    formData.append(`principal_${index}`, String(img.principal === true));
+  }
 });
 
         await handleEdit(carroSelecionado.id, formData);
@@ -255,13 +258,17 @@ type ImagemPreview =
       console.log(`${key}:`, value);
     }
       const response = await api.put(`/carro/${id}`, formData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
+  headers: { "Content-Type": "multipart/form-data" },
+});
 
-      if (response.status === 200) {
-        setCarros((prev) => prev.map((c) => (c.id === id ? response.data : c)));
-        alert("Carro editado com sucesso.");
-      } else if (response.status === 400) {
+if (response.status === 200) {
+  const updatedCarro = await api.get(`/carro/${id}`); // buscar atualizado com imagens
+  setCarros((prev) =>
+    prev.map((c) => (c.id === id ? updatedCarro.data : c))
+  );
+  alert("Carro editado com sucesso.");
+}
+       else if (response.status === 400) {
         alert("Carros em destaque no máximo 3");
       } else {
         alert("Erro ao editar carro.");
@@ -299,13 +306,14 @@ type ImagemPreview =
 
   // Setar imagem principal
   const handleSetPrincipal = (index: number) => {
-    setImagens((prev) =>
-      prev.map((img, i) => ({
-        ...img,
-        principal: i === index,
-      }))
-    );
-  };
+  const updatedImagens = imagens.map((img, i) => ({
+    ...img,
+    principal: i === index,
+  }));
+
+  setImagens(updatedImagens);
+  formik.setFieldValue("imagens", updatedImagens); // <-- atualiza o Formik também!
+};
 
   return (
     <CarrosContainer>
@@ -489,18 +497,18 @@ type ImagemPreview =
 
               <label>
                 Marca:
-                <select
-                  name="marca"
-                  value={formik.values.marca}
-                  onChange={formik.handleChange}
-                >
-                  <option value="">Selecione a marca</option>
-                  {marcas.map((marca) => (
-                    <option key={marca.id} value={marca.nome}>
-                      {marca.nome}
-                    </option>
-                  ))}
-                </select>
+    <select
+  name="marca"
+  value={formik.values.marca}
+  onChange={formik.handleChange}
+>
+  <option value="">Selecione a marca</option>
+  {marcas.map((marca) => (
+    <option key={marca.id} value={marca.id}>
+      {marca.nome}
+    </option>
+  ))}
+</select>
               </label>
                   </div>
                   <div className="from-group">
