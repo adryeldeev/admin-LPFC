@@ -253,10 +253,7 @@ type ImagemPreview =
   // Editar carro
   const handleEdit = async (id: number, formData: FormData) => {
     try {
-       console.log("🟡 Dados enviados no FormData:");
-    for (const [key, value] of formData.entries()) {
-      console.log(`${key}:`, value);
-    }
+    
       const response = await api.put(`/carro/${id}`, formData, {
   headers: { "Content-Type": "multipart/form-data" },
 });
@@ -268,17 +265,21 @@ if (response.status === 200) {
   );
   alert("Carro editado com sucesso.");
 }
-       else if (response.status === 400) {
-        alert("Carros em destaque no máximo 3");
-      } else {
-        alert("Erro ao editar carro.");
-      }
-    } catch (error) {
-      console.error("Erro ao editar carro:", error);
-      alert("Erro ao editar carro.");
-    } finally {
-      handleCloseModal();
-    }
+      
+   
+  } catch (error: any) {
+  console.error("Erro ao editar carro:", error);
+  
+  if (error.response?.status === 400) {
+    alert(error.response.data.message || "Carros em destaque no máximo 3");
+  } else {
+    alert("Erro ao editar carro.");
+  }
+} finally {
+  handleCloseModal();
+}
+
+    
   };
 
   // Paginação
