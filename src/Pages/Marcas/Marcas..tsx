@@ -102,18 +102,23 @@ const Marcas: React.FC = () => {
     }),
     onSubmit: async (values) => {
       try {
+        // const response = await api.put(`/marca/${marcaSelecionada.id}`, formData)
         const formData = new FormData()
         formData.append("nome", values.nome)
         if (values.imagem) {
           formData.append("imagem", values.imagem)
         }
 
-        const response = await api.put(`/marca/${marcaSelecionada.id}`, formData)
-        if (response.status === 200) {
-          alert("Marca atualizada com sucesso")
-          fetchMarcas()
-          handleCloseModal()
-        } else {
+            const response = await api.put(`/marca/${marcaSelecionada.id}`, formData
+);
+
+if (response.status === 200) {
+  const updatedMarca = await api.get(`/marca/${marcaSelecionada.id}`); // buscar atualizado com imagens
+ setMarcas((prev) =>
+  prev.map((c) => (c.id === marcaSelecionada.id ? updatedMarca.data : c))
+);
+  alert("Marca atualizada com sucesso.");
+      }else {
           alert("Erro ao atualizar marca")
         }
       } catch (err) {
