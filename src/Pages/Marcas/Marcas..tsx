@@ -80,7 +80,7 @@ const Marcas: React.FC = () => {
     if (confirm("Tem certeza que deseja deletar esta marca?")) {
       try {
         const response = await api.delete(`/marca/${id}`)
-        if (response.status === 200) {
+        if (response.status === 204) {
           setMarcas((prev) => prev.filter((marca) => marca.id !== id))
         } else {
           alert("Erro ao deletar.")
@@ -108,16 +108,22 @@ const Marcas: React.FC = () => {
         if (values.imagem) {
           formData.append("imagem", values.imagem)
         }
-
-            const response = await api.put(`/marca/${marcaSelecionada.id}`, formData
-);
-
-if (response.status === 200) {
-  const updatedMarca = await api.get(`/marca/${marcaSelecionada.id}`); // buscar atualizado com imagens
- setMarcas((prev) =>
+        
+        const response = await api.put(`/marca/${marcaSelecionada.id}`, formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data'
+          }
+        })
+        
+        if (response.status === 200) {
+          const updatedMarca = await api.get(`/marca/${marcaSelecionada.id}`); // buscar atualizado com imagens
+          console.log(updatedMarca.data); 
+          setMarcas((prev) =>
   prev.map((c) => (c.id === marcaSelecionada.id ? updatedMarca.data : c))
 );
   alert("Marca atualizada com sucesso.");
+          handleCloseModal();
+          fetchMarcas(); // Recarregar a lista de marcas
       }else {
           alert("Erro ao atualizar marca")
         }
@@ -136,17 +142,20 @@ if (response.status === 200) {
       </Div>
 
       <ListaMarcaContainer>
-        {marcasPagina.map((marca) => (
-          <CardMarca key={marca.id}>
-            <img src={`${baseUrl}${marca.logo}`} alt="Imagem da marca" />
-            <h3>{marca.nome}</h3>
+        {marcasPagina.map((marca) => {
+  const logoSrc = `${baseUrl}${marca.logo}?t=${marca.updatedAt || Date.now()}`;
+  return (
+    <CardMarca key={marca.id}>
+      <img src={logoSrc} alt="Imagem da marca" />
+      <h3>{marca.nome}</h3>
 
-            <CardActions className="actions">
-              <button onClick={() => handleOpenModal(marca)}>Editar</button>
-              <button onClick={() => handleDelete(marca.id)}>Excluir</button>
-            </CardActions>
-          </CardMarca>
-        ))}
+      <CardActions className="actions">
+        <button onClick={() => handleOpenModal(marca)}>Editar</button>
+        <button onClick={() => handleDelete(marca.id)}>Excluir</button>
+      </CardActions>
+    </CardMarca>
+  );
+})}
       </ListaMarcaContainer>
 
       <div style={{ marginTop: "1rem", display: "flex", gap: "1rem" }}>
